@@ -90,7 +90,7 @@
                     <archive>
                         <manifest>
                             <!--注意，此处必须是main()方法对应类的完整路径  -->
-                            <mainClass>DescribeInstances</mainClass>
+                            <mainClass>start</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

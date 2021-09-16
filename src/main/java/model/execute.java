@@ -28,43 +28,6 @@ public class execute {
     public static int i = 0;
 
 
-    public static List<ConfSecurityGroupEty> FileToCsgelist() throws IOException {
-        List<ConfSecurityGroupEty> csgelist = new ArrayList<ConfSecurityGroupEty>();
-
-        //获取data.txt
-        String jarpath = System.getProperty("java.class.path");
-        int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-        int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-        jarpath = jarpath.substring(firstIndex, lastIndex);
-
-        File datafile =new File(jarpath + "data.txt");
-        if(datafile.exists() != true) {
-            System.out.println("data.txt文件不存在！");
-            return null;
-        }
-        //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-        UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
-        BufferedReader databf = new BufferedReader(datard);
-        String temp;
-        i=0;
-        while((temp = databf.readLine()) != null) {
-            ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-            List<String> arraylist = new ArrayList<String>();
-
-            String arr[] = temp.split("\\s+");
-            csge.setSourceIp(arr[0]);
-            csge.setIpProtocol(arr[1]);
-            csge.setPortRange(arr[2]);
-            int a = arr.length;
-            if(arr.length == 4) {
-                csge.setDescription(arr[3]);
-            }
-            csgelist.add(i,csge);
-            i++;
-        }
-
-        return csgelist;
-    }
 
 
     public static void addRule2AllSecurityGroup(requestParams rp) {
@@ -99,7 +62,37 @@ public class execute {
                 break;
             }
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSourceIp(arr[0]);
+                csge.setIpProtocol(arr[1]);
+                csge.setPortRange(arr[2]);
+                int a = arr.length;
+                if(arr.length == 4) {
+                    csge.setDescription(arr[3]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
 
             //展示data.txt内容
@@ -198,8 +191,8 @@ public class execute {
                 System.out.println("\n+ -- -- =>>用户:	" + rp.getDisplayName() + "		<<\n");
                 System.out.println("\n	请将配置文件data.txt放入jar包所在的目录\n");
                 System.out.println("         [data.txt      	            				]");
-                System.out.println("+ -- -- =[源IP + 空格 + 目的IP + 协议类型 + 空格 + 端口段 + 空格 + 描述	]");
-                System.out.println("+ -- -- =[源IP + 空格 + 目的IP + 协议类型 + 空格 + 端口段 + 空格 + 描述	]");
+                System.out.println("+ -- -- =[源IP + 空格 + 目的IP + 空格 + 协议类型 + 空格 + 端口段 + 空格 + 描述	]");
+                System.out.println("+ -- -- =[源IP + 空格 + 目的IP + 空格 + 协议类型 + 空格 + 端口段 + 空格 + 描述	]");
                 System.out.println("+ -- -- =<协议类型包含: tcp udp icmp gre all>");
                 System.out.println("+ -- -- =<当协议类型为all时,端口填写-1/-1>");
                 System.out.println("\n	请输入选项：\n");
@@ -221,7 +214,38 @@ public class execute {
                 break;
             }
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSourceIp(arr[0]);
+                csge.setDestIP(arr[1]);
+                csge.setIpProtocol(arr[2]);
+                csge.setPortRange(arr[3]);
+                int a = arr.length;
+                if(arr.length == 5) {
+                    csge.setDescription(arr[4]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
             //展示data.txt内容
             cls();
@@ -259,7 +283,7 @@ public class execute {
 
 
             //读取所有ECS信息，遍历为实体类
-            String temp = ea.DescribeInstances(rp);
+            temp = ea.DescribeInstances(rp);
             JsonNode ecsjn = mapper.readTree(temp);
             ecsjn = ecsjn.get("Instances").get("Instance");
             for(i=0;i<ecsjn.size();i++) {
@@ -411,7 +435,38 @@ public class execute {
             }
 
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSecurityGroupId(arr[0]);
+                csge.setSourceIp(arr[1]);
+                csge.setIpProtocol(arr[2]);
+                csge.setPortRange(arr[3]);
+                int a = arr.length;
+                if(arr.length == 5) {
+                    csge.setDescription(arr[4]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
 
             //展示data.txt内容
@@ -678,7 +733,38 @@ public class execute {
             }
 
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSourceIp(arr[0]);
+                csge.setDestIP(arr[1]);
+                csge.setIpProtocol(arr[2]);
+                csge.setPortRange(arr[3]);
+                int a = arr.length;
+                if(arr.length == 5) {
+                    csge.setDescription(arr[4]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
 
             //展示data.txt内容
@@ -717,7 +803,6 @@ public class execute {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             //读取所有ECS信息，遍历为实体类
-            String temp;
             temp = ea.DescribeInstances(rp);
             JsonNode ecsjn = mapper.readTree(temp);
             ecsjn = ecsjn.get("Instances").get("Instance");
@@ -729,7 +814,7 @@ public class execute {
 
 
 
-//遍历ecs信息,添加安全组ID到csgelist
+            //遍历ecs信息,添加安全组ID到csgelist
             List<ConfSecurityGroupEty> csgetemplist = new ArrayList<ConfSecurityGroupEty>();
             for(i=0;i<csgelist.size();i++) {
                 for(int j=0;j<ecsinfolist.size();j++) {
@@ -861,7 +946,37 @@ public class execute {
                 break;
             }
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSourceIp(arr[0]);
+                csge.setIpProtocol(arr[1]);
+                csge.setPortRange(arr[2]);
+                int a = arr.length;
+                if(arr.length == 4) {
+                    csge.setDescription(arr[3]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
             //展示data.txt内容
             cls();
@@ -981,7 +1096,38 @@ public class execute {
             }
 
 
-            csgelist = FileToCsgelist();
+            //获取data.txt
+            String jarpath = System.getProperty("java.class.path");
+            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+            jarpath = jarpath.substring(firstIndex, lastIndex);
+
+            File datafile =new File(jarpath + "data.txt");
+            if(datafile.exists() != true) {
+                System.out.println("data.txt文件不存在！");
+                return ;
+            }
+            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+            BufferedReader databf = new BufferedReader(datard);
+            String temp;
+            i=0;
+            while((temp = databf.readLine()) != null) {
+                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+                List<String> arraylist = new ArrayList<String>();
+
+                String arr[] = temp.split("\\s+");
+                csge.setSecurityGroupId(arr[0]);
+                csge.setSourceIp(arr[1]);
+                csge.setIpProtocol(arr[2]);
+                csge.setPortRange(arr[3]);
+                int a = arr.length;
+                if(arr.length == 5) {
+                    csge.setDescription(arr[4]);
+                }
+                csgelist.add(i,csge);
+                i++;
+            }
 
 
             //展示data.txt内容

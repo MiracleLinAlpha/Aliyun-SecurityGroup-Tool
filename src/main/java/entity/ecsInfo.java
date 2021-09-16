@@ -55,6 +55,15 @@ public class ecsInfo {
 	private	NetworkInterfacesEty NetworkInterfaces;
 
 	private	float SpotPriceLimit;
+
+	public float getSpotPriceLimit() {
+		return SpotPriceLimit;
+	}
+
+	public void setSpotPriceLimit(float spotPriceLimit) {
+		SpotPriceLimit = spotPriceLimit;
+	}
+
 	private	boolean DeviceAvailable;
 	private	String SaleCycle;
 	private	String InstanceType;
@@ -292,12 +301,6 @@ public class ecsInfo {
 	public void setNetworkInterfaces(NetworkInterfacesEty networkInterfaces) {
 		NetworkInterfaces = networkInterfaces;
 	}
-	public float getSpotPriceLimit() {
-		return SpotPriceLimit;
-	}
-	public void setSpotPriceLimit(int spotPriceLimit) {
-		SpotPriceLimit = spotPriceLimit;
-	}
 	public boolean isDeviceAvailable() {
 		return DeviceAvailable;
 	}
@@ -342,9 +345,6 @@ public class ecsInfo {
 		InstanceBandwidthTx = instanceBandwidthTx;
 	}
 
-	public void setSpotPriceLimit(float spotPriceLimit) {
-		SpotPriceLimit = spotPriceLimit;
-	}
 
 	public void setDeviceAvailable(boolean deviceAvailable) {
 		DeviceAvailable = deviceAvailable;
