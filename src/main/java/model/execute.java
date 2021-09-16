@@ -1,33 +1,21 @@
 package model;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import api.Ecs_Api;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import entity.*;
+import util.UnicodeReader;
+
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import api.Ecs_Api;
-import entity.ConfSecurityGroupEty;
-import entity.SecurityGroupAllEty;
-import entity.SecurityGroupRuleEty;
-import entity.ecsInfo;
-import entity.efficientAddRuleEty;
-import entity.requestParams;
-import util.UnicodeReader;
-import util.json2Entity;
-
 public class execute {
 
-    //public static requestParams rp = new requestParams();
     public static Ecs_Api ea = new Ecs_Api();
     public static SecurityGroupAllEty sgae = new SecurityGroupAllEty();
     public static List<SecurityGroupAllEty> sgaelist = new ArrayList<SecurityGroupAllEty>();
@@ -35,10 +23,48 @@ public class execute {
     public static List<ecsInfo> ecsinfolist = new ArrayList<ecsInfo>();
     public static SecurityGroupRuleEty sgre = new SecurityGroupRuleEty();
     public static List<SecurityGroupRuleEty> sgrelist = new ArrayList<SecurityGroupRuleEty>();
-    public static List<efficientAddRuleEty> earelist = new ArrayList<efficientAddRuleEty>();
     public static String choose = "0";
     public static Scanner scan = new Scanner(System.in);
+    public static int i = 0;
 
+
+    public static List<ConfSecurityGroupEty> FileToCsgelist() throws IOException {
+        List<ConfSecurityGroupEty> csgelist = new ArrayList<ConfSecurityGroupEty>();
+
+        //获取data.txt
+        String jarpath = System.getProperty("java.class.path");
+        int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
+        int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
+        jarpath = jarpath.substring(firstIndex, lastIndex);
+
+        File datafile =new File(jarpath + "data.txt");
+        if(datafile.exists() != true) {
+            System.out.println("data.txt文件不存在！");
+            return null;
+        }
+        //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
+        UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
+        BufferedReader databf = new BufferedReader(datard);
+        String temp;
+        i=0;
+        while((temp = databf.readLine()) != null) {
+            ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
+            List<String> arraylist = new ArrayList<String>();
+
+            String arr[] = temp.split("\\s+");
+            csge.setSourceIp(arr[0]);
+            csge.setIpProtocol(arr[1]);
+            csge.setPortRange(arr[2]);
+            int a = arr.length;
+            if(arr.length == 4) {
+                csge.setDescription(arr[3]);
+            }
+            csgelist.add(i,csge);
+            i++;
+        }
+
+        return csgelist;
+    }
 
 
     public static void addRule2AllSecurityGroup(requestParams rp) {
@@ -73,37 +99,8 @@ public class execute {
                 break;
             }
 
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
+            csgelist = FileToCsgelist();
 
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSourceIp(arr[0]);
-                csge.setIpProtocol(arr[1]);
-                csge.setPortRange(arr[2]);
-                int a = arr.length;
-                if(arr.length == 4) {
-                    csge.setDescription(arr[3]);
-                }
-                csgelist.add(i,csge);
-                i++;
-            }
 
             //展示data.txt内容
             cls();
@@ -136,9 +133,11 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
+
+            //获取当前系统内的所有安全组
             String SecurityGroupsjson = ea.DescribeSecurityGroups(rp);
             JsonNode SecurityGroupsjn = mapper.readTree(SecurityGroupsjson);
             SecurityGroupsjn = SecurityGroupsjn.get("SecurityGroups").get("SecurityGroup");
@@ -162,7 +161,7 @@ public class execute {
                     ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp());
 
                     result = ea.AuthorizeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp(), csgelist.get(j).getDescription());
-                    if(result.contains("Code") == true) {
+                    if(result.contains("Code\":\"200") == false) {
                         System.out.println(result);
                         System.out.println("接口调用出错！");
                         System.out.println("条目 " + csgelist.get(j).toString() + " 失败！");
@@ -185,8 +184,8 @@ public class execute {
             e.printStackTrace();
         }
 
-    }
 
+    }
 
 
     public static void addRuleByDestIp(requestParams rp) {
@@ -222,39 +221,7 @@ public class execute {
                 break;
             }
 
-
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
-
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSourceIp(arr[0]);
-                csge.setDestIP(arr[1]);
-                csge.setIpProtocol(arr[2]);
-                csge.setPortRange(arr[3]);
-                int a = arr.length;
-                if(arr.length == 5) {
-                    csge.setDescription(arr[4]);
-                }
-                csgelist.add(i,csge);
-                i++;
-            }
+            csgelist = FileToCsgelist();
 
             //展示data.txt内容
             cls();
@@ -287,12 +254,12 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
 
             //读取所有ECS信息，遍历为实体类
-            temp = ea.DescribeInstances(rp);
+            String temp = ea.DescribeInstances(rp);
             JsonNode ecsjn = mapper.readTree(temp);
             ecsjn = ecsjn.get("Instances").get("Instance");
             for(i=0;i<ecsjn.size();i++) {
@@ -320,6 +287,7 @@ public class execute {
                                 csge.setPortRange(csgelist.get(i).getPortRange());
                                 csge.setDescription(csgelist.get(i).getDescription());
                                 csge.setSecurityGroupId(ecsinfolist.get(j).getSecurityGroupIds().getSecurityGroupId().get(k));
+                                csge.setDepartment(csgelist.get(i).getDepartment());
                                 csgetemplist.add(csge);
                             }
                         }else {
@@ -338,18 +306,22 @@ public class execute {
 
 
             //结合信息，添加入高效添加组
+            List<efficientAddRuleEty> earelist = new ArrayList<efficientAddRuleEty>();
+
             for(i=0;i<csgelist.size();i++) {
+
                 if(earelist.size() == 0) {
                     efficientAddRuleEty eare = new efficientAddRuleEty();
-                    eare.setSourceIp(csgelist.get(i).getSourceIp());
-                    eare.setDestIP(csgelist.get(i).getDestIP());
-                    eare.setIpProtocol(csgelist.get(i).getIpProtocol());
-                    eare.setPortRange(csgelist.get(i).getPortRange());
-                    eare.setDescription(csgelist.get(i).getDescription());
-                    eare.setSecurityGroupId(csgelist.get(i).getSecurityGroupId());
-                    eare.setDepartment(csgelist.get(i).getDepartment());
+                    eare.setSourceIp(csgelist.get(0).getSourceIp());
+                    eare.setDestIP(csgelist.get(0).getDestIP());
+                    eare.setIpProtocol(csgelist.get(0).getIpProtocol());
+                    eare.setPortRange(csgelist.get(0).getPortRange());
+                    eare.setDescription(csgelist.get(0).getDescription());
+                    eare.setSecurityGroupId(csgelist.get(0).getSecurityGroupId());
+                    eare.setDepartment(csgelist.get(0).getDepartment());
                     earelist.add(eare);
                 }else {
+
                     int flag = 0;
                     for(int j=0;j<earelist.size();j++) {
                         if(earelist.get(j).getSourceIp().equals(csgelist.get(i).getSourceIp()) && earelist.get(j).getIpProtocol().equals(csgelist.get(i).getIpProtocol()) && earelist.get(j).getPortRange().equals(csgelist.get(i).getPortRange())) {
@@ -383,7 +355,7 @@ public class execute {
                 ea.RevokeSecurityGroup(rp, earelist.get(i).getSecurityGroupId(), Integer.toString(earelist.get(i).getDepartment()), earelist.get(i).getIpProtocol(), earelist.get(i).getPortRange(), earelist.get(i).getSourceIp());
 
                 result = ea.AuthorizeSecurityGroup(rp, earelist.get(i).getSecurityGroupId(), Integer.toString(earelist.get(i).getDepartment()), earelist.get(i).getIpProtocol(), earelist.get(i).getPortRange(), earelist.get(i).getSourceIp(), earelist.get(i).getDescription());
-                if(result.contains("Code") == true) {
+                if(result.contains("Code\":\"200") == true) {
                     System.out.println(result);
                     System.out.println("接口调用出错！");
                     System.out.println("条目 " + csgelist.get(i).toString() + " 失败！");
@@ -403,7 +375,6 @@ public class execute {
             e.printStackTrace();
         }
     }
-
 
 
     public static void addRuleBySecurityGroupId(requestParams rp) {
@@ -440,38 +411,8 @@ public class execute {
             }
 
 
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
+            csgelist = FileToCsgelist();
 
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSecurityGroupId(arr[0]);
-                csge.setSourceIp(arr[1]);
-                csge.setIpProtocol(arr[2]);
-                csge.setPortRange(arr[3]);
-                int a = arr.length;
-                if(arr.length == 5) {
-                    csge.setDescription(arr[4]);
-                }
-                csgelist.add(i,csge);
-                i++;
-            }
 
             //展示data.txt内容
             cls();
@@ -507,8 +448,8 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             String SecurityGroupsjson = ea.DescribeSecurityGroups(rp);
             JsonNode SecurityGroupsjn = mapper.readTree(SecurityGroupsjson);
@@ -520,7 +461,7 @@ public class execute {
                 sgaelist.add(sgae);
             }
 
-            //验证安全组是否存在，存在则添加
+            //删除已存在的安全组，执行添加
             int num = 0;
             for(i=0;i<sgaelist.size();i++) {
                 for(int j=0;j<csgelist.size();j++) {
@@ -531,7 +472,7 @@ public class execute {
                         ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp());
 
                         result = ea.AuthorizeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp(), csgelist.get(j).getDescription());
-                        if(result.contains("Code") == true) {
+                        if(result.contains("Code\":\"200") == true) {
                             System.out.println(result);
                             System.out.println("接口调用出错！");
                             System.out.println("条目 " + csgelist.get(j).toString() + " 失败！");
@@ -552,6 +493,7 @@ public class execute {
             e.printStackTrace();
         }
     }
+
 
 
 
@@ -602,7 +544,7 @@ public class execute {
                 return ;
             }
             //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
+            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile), Charset.defaultCharset().name());
             BufferedReader databf = new BufferedReader(datard);
             String temp;
             int i=0;
@@ -641,8 +583,8 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             String result = "";
             int num = 0;
@@ -680,7 +622,7 @@ public class execute {
                         ea.RevokeSecurityGroup(rp, destSecurityGroupId, String.valueOf(sgaelist.get(i).getDepartment()), sgrelist.get(j).getIpProtocol(), sgrelist.get(j).getPortRange(), sgrelist.get(j).getSourceCidrIp());
 
                         result = ea.AuthorizeSecurityGroup(rp, destSecurityGroupId, String.valueOf(sgaelist.get(i).getDepartment()), sgrelist.get(j).getIpProtocol(), sgrelist.get(j).getPortRange(), sgrelist.get(j).getSourceCidrIp(), sgrelist.get(j).getDescription());
-                        if(result.contains("Code") == true) {
+                        if(result.contains("Code\":\"200") == true) {
                             System.out.println("接口调用出错！");
                             System.out.println("条目 " + csgelist.get(i).toString() + " 失败！");
                         }else
@@ -700,7 +642,6 @@ public class execute {
             e.printStackTrace();
         }
     }
-
 
 
     public static void revokeRuleByDestIp(requestParams rp) {
@@ -737,35 +678,7 @@ public class execute {
             }
 
 
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
-
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSourceIp(arr[0]);
-                csge.setDestIP(arr[1]);
-                csge.setIpProtocol(arr[2]);
-                csge.setPortRange(arr[3]);
-                csgelist.add(i,csge);
-                i++;
-            }
-
+            csgelist = FileToCsgelist();
 
 
             //展示data.txt内容
@@ -800,10 +713,11 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             //读取所有ECS信息，遍历为实体类
+            String temp;
             temp = ea.DescribeInstances(rp);
             JsonNode ecsjn = mapper.readTree(temp);
             ecsjn = ecsjn.get("Instances").get("Instance");
@@ -815,7 +729,7 @@ public class execute {
 
 
 
-            //遍历ecs信息,添加安全组ID到csgelist
+//遍历ecs信息,添加安全组ID到csgelist
             List<ConfSecurityGroupEty> csgetemplist = new ArrayList<ConfSecurityGroupEty>();
             for(i=0;i<csgelist.size();i++) {
                 for(int j=0;j<ecsinfolist.size();j++) {
@@ -830,7 +744,9 @@ public class execute {
                                 csge.setDestIP(csgelist.get(i).getDestIP());
                                 csge.setIpProtocol(csgelist.get(i).getIpProtocol());
                                 csge.setPortRange(csgelist.get(i).getPortRange());
+                                csge.setDescription(csgelist.get(i).getDescription());
                                 csge.setSecurityGroupId(ecsinfolist.get(j).getSecurityGroupIds().getSecurityGroupId().get(k));
+                                csge.setDepartment(csgelist.get(i).getDepartment());
                                 csgetemplist.add(csge);
                             }
                         }else {
@@ -847,17 +763,18 @@ public class execute {
             }
 
 
-
             //结合信息，添加入高效添加组
+            List<efficientAddRuleEty> earelist = new ArrayList<efficientAddRuleEty>();
             for(i=0;i<csgelist.size();i++) {
                 if(earelist.size() == 0) {
                     efficientAddRuleEty eare = new efficientAddRuleEty();
-                    eare.setSourceIp(csgelist.get(i).getSourceIp());
-                    eare.setDestIP(csgelist.get(i).getDestIP());
-                    eare.setIpProtocol(csgelist.get(i).getIpProtocol());
-                    eare.setPortRange(csgelist.get(i).getPortRange());
-                    eare.setSecurityGroupId(csgelist.get(i).getSecurityGroupId());
-                    eare.setDepartment(csgelist.get(i).getDepartment());
+                    eare.setSourceIp(csgelist.get(0).getSourceIp());
+                    eare.setDestIP(csgelist.get(0).getDestIP());
+                    eare.setIpProtocol(csgelist.get(0).getIpProtocol());
+                    eare.setPortRange(csgelist.get(0).getPortRange());
+                    eare.setDescription(csgelist.get(0).getDescription());
+                    eare.setSecurityGroupId(csgelist.get(0).getSecurityGroupId());
+                    eare.setDepartment(csgelist.get(0).getDepartment());
                     earelist.add(eare);
                 }else {
                     int flag = 0;
@@ -873,6 +790,7 @@ public class execute {
                         eare.setDestIP(csgelist.get(i).getDestIP());
                         eare.setIpProtocol(csgelist.get(i).getIpProtocol());
                         eare.setPortRange(csgelist.get(i).getPortRange());
+                        eare.setDescription(csgelist.get(i).getDescription());
                         eare.setSecurityGroupId(csgelist.get(i).getSecurityGroupId());
                         eare.setDepartment(csgelist.get(i).getDepartment());
                         earelist.add(eare);
@@ -891,7 +809,7 @@ public class execute {
 
                 result = ea.RevokeSecurityGroup(rp, earelist.get(i).getSecurityGroupId(), Integer.toString(earelist.get(i).getDepartment()), earelist.get(i).getIpProtocol(), earelist.get(i).getPortRange(), earelist.get(i).getSourceIp());
 
-                if(result.contains("Code") == true) {
+                if(result.contains("Code\":\"200") == true) {
                     System.out.println(result);
                     System.out.println("接口调用出错！");
                     System.out.println("条目 " + csgelist.get(i).toString() + " 失败！");
@@ -910,6 +828,7 @@ public class execute {
             e.printStackTrace();
         }
     }
+
 
     public static void revokeRule2AllSecurityGroup(requestParams rp) {
         try {
@@ -942,33 +861,7 @@ public class execute {
                 break;
             }
 
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
-
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSourceIp(arr[0]);
-                csge.setIpProtocol(arr[1]);
-                csge.setPortRange(arr[2]);
-                csgelist.add(i,csge);
-                i++;
-            }
+            csgelist = FileToCsgelist();
 
             //展示data.txt内容
             cls();
@@ -1001,8 +894,8 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             String SecurityGroupsjson = ea.DescribeSecurityGroups(rp);
             JsonNode SecurityGroupsjn = mapper.readTree(SecurityGroupsjson);
@@ -1022,11 +915,11 @@ public class execute {
                 int singlenum = 0;
                 for(int j=0;j<csgelist.size();j++) {
                     String result;
-                    System.out.println("条目：" + csgelist.get(i).getSourceIp() + "  " + csgelist.get(i).getIpProtocol() + "  " + csgelist.get(i).getPortRange() + "\n");
+                    System.out.println("条目：" + csgelist.get(j).getSourceIp() + "  " + csgelist.get(j).getIpProtocol() + "  " + csgelist.get(j).getPortRange() + "\n");
 
-                    result = ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(i).getIpProtocol(), csgelist.get(i).getPortRange(), csgelist.get(i).getSourceIp());
+                    result = ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp());
 
-                    if(result.contains("Code") == true) {
+                    if(result.contains("Code\":\"200") == true) {
                         System.out.println(result);
                         System.out.println("接口调用出错！");
                         System.out.println("条目 " + csgelist.get(i).toString() + " 失败！");
@@ -1049,6 +942,9 @@ public class execute {
             e.printStackTrace();
         }
     }
+
+
+
 
 
     public static void revokeRuleBySecurityGroupId(requestParams rp) {
@@ -1085,35 +981,7 @@ public class execute {
             }
 
 
-            //获取data.txt
-            String jarpath = System.getProperty("java.class.path");
-            int firstIndex = jarpath.lastIndexOf(System.getProperty("path.separator")) + 1;
-            int lastIndex = jarpath.lastIndexOf(File.separator) + 1;
-            jarpath = jarpath.substring(firstIndex, lastIndex);
-
-            File datafile =new File(jarpath + "data.txt");
-            if(datafile.exists() != true) {
-                System.out.println("data.txt文件不存在！");
-                return ;
-            }
-            //InputStreamReader datard = new InputStreamReader (new FileInputStream(datafile),"UTF-8");
-            UnicodeReader datard = new UnicodeReader(new FileInputStream(datafile),Charset.defaultCharset().name());
-            BufferedReader databf = new BufferedReader(datard);
-            String temp;
-            int i=0;
-            while((temp = databf.readLine()) != null) {
-                ConfSecurityGroupEty csge = new ConfSecurityGroupEty();
-                List<String> arraylist = new ArrayList<String>();
-
-                String arr[] = temp.split("\\s+");
-                csge.setSecurityGroupId(arr[0]);
-                csge.setSourceIp(arr[1]);
-                csge.setIpProtocol(arr[2]);
-                csge.setPortRange(arr[3]);
-                csgelist.add(i,csge);
-                i++;
-            }
-
+            csgelist = FileToCsgelist();
 
 
             //展示data.txt内容
@@ -1148,8 +1016,8 @@ public class execute {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-            mapper.setDefaultPropertyInclusion(Include.NON_DEFAULT);
-            mapper.setSerializationInclusion(Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_DEFAULT);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
             String SecurityGroupsjson = ea.DescribeSecurityGroups(rp);
             JsonNode SecurityGroupsjn = mapper.readTree(SecurityGroupsjson);
@@ -1168,11 +1036,11 @@ public class execute {
                 for(int j=0;j<csgelist.size();j++) {
                     if(sgaelist.get(i).getSecurityGroupId().equals(csgelist.get(j).getSecurityGroupId())) {
                         String result;
-                        System.out.println("条目：" + csgelist.get(i).getSecurityGroupId() + "  " + csgelist.get(i).getSourceIp() + "  " + csgelist.get(i).getIpProtocol() + "  " + csgelist.get(i).getPortRange() + "\n");
+                        System.out.println("条目：" + csgelist.get(j).getSecurityGroupId() + "  " + csgelist.get(j).getSourceIp() + "  " + csgelist.get(j).getIpProtocol() + "  " + csgelist.get(j).getPortRange() + "\n");
 
-                        result = ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(i).getIpProtocol(), csgelist.get(i).getPortRange(), csgelist.get(i).getSourceIp());
+                        result = ea.RevokeSecurityGroup(rp, sgaelist.get(i).getSecurityGroupId(), Integer.toString(sgaelist.get(i).getDepartment()), csgelist.get(j).getIpProtocol(), csgelist.get(j).getPortRange(), csgelist.get(j).getSourceIp());
 
-                        if(result.contains("Code") == true) {
+                        if(result.contains("Code\":\"200") == true) {
                             System.out.println(result);
                             System.out.println("接口调用出错！");
                             System.out.println("条目 " + csgelist.get(i).toString() + " 失败！");
@@ -1198,9 +1066,9 @@ public class execute {
         }
     }
 
-
     public static void cls() throws IOException, InterruptedException{
         new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
     }
-}
 
+
+}
